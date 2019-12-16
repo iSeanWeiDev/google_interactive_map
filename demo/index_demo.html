@@ -1,0 +1,188 @@
+<!-- <!DOCTYPE html>
+<html>
+  <head>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+    <script src="http://d3js.org/queue.v1.min.js"></script>
+    <style type="text/css">
+    .states {
+      fill: RGBA(10, 166, 153, 0.5);
+      stroke: #E5E9EC;
+      stroke-width:1px;
+    }
+    .symbol {
+      fill: orange;
+      stroke: orange;
+      stroke-width:10px;
+      stroke-opacity: .5;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="graph"></div>
+    <script type="text/javascript">
+       /*
+      * D3 script to create map
+      * This map is based on @mbostock 's Symbol Map
+      * original : http://bl.ocks.org/mbostock/4342045
+      * Removed some states and added random fade in animation 
+      */
+      var us, centroid;
+      var radius = d3.scale.sqrt()
+          .domain([0, 1e7])
+          .range([0, 10]);
+      
+      function mapRender() {
+      
+        d3.select('#graph svg').remove();
+      
+        var width = 960,
+            height = 500;
+      
+        var projection = d3.geo.albersUsa()
+            .translate([width / 2, height / 2]);
+      
+        var path = d3.geo.path()
+        .projection(projection);
+      
+        var svg = d3.select('#graph').append('svg')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('transform', 'translate(' + (width/2) +
+               ',' + (height/2) + ')');
+        svg.append('path')
+            .attr('class', 'states')
+            .datum(topojson.feature(us, us.objects.states))
+            .attr('d', path);
+      
+        var circle = svg.selectAll('.symbol')
+            .data(centroid.features.sort(function(a, b) { return b.properties.population - a.properties.population; }))
+          .enter().append('path')
+          .attr('d', path.pointRadius(function(d) { return radius(d.properties.population); }));
+      
+         function annimateCircle() {
+           circle.attr('class', 'symbol')
+            .attr('opacity', 0)
+              .transition().delay(function(d,i){ return i*500 ; }).duration(500)
+              .attr('opacity', function(){
+                var rand = Math.ceil(Math.random()*10);
+                if(rand > 8 ){
+                  return 1;
+                }
+                return 0;
+              })
+              .transition().duration(500)
+              .attr('opacity',0)
+              .each('end', annimateCircle);
+          }
+        annimateCircle();
+      }
+      
+      function setData(error, usdata, centroiddata){
+        us = usdata;
+        centroid= centroiddata;
+        mapRender();
+      }
+      
+      queue().defer(d3.json, './us.json')
+             .defer(d3.json, './city.json')
+             .await(setData);
+    </script>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Select features around a clicked point</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.0/mapbox-gl.js"></script>
+<!-- <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.0/mapbox-gl.css" rel="stylesheet" /> -->
+<style>
+	body { margin: 0; padding: 0; }
+	#map { position: absolute; top: 0; bottom: 0; width: 100%; };
+</style>
+</head>
+<body>
+<div id="map"></div>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoicGFuYW1hY2hlbmciLCJhIjoiY2s0N3MzbjViMHlkYjNkbWt4bjF2OHN3ZiJ9.qXx-2uH3-_Y1zMPd8E2jfw';
+var map = new mapboxgl.Map({
+container: 'map',
+style: 'mapbox://styles/mapbox/streets-v11',
+center: [-98, 38.88],
+minZoom: 2,
+zoom: 3
+});
+ 
+map.on('load', function() {
+// Add the source to query. In this example we're using
+// county polygons uploaded as vector tiles
+map.addSource('counties', {
+'type': 'vector',
+'url': 'mapbox://mapbox.82pkq93d'
+});
+ 
+map.addLayer(
+{
+'id': 'counties',
+'type': 'fill',
+'source': 'counties',
+'source-layer': 'original',
+'paint': {
+'fill-outline-color': 'rgba(0,0,0,0.1)',
+'fill-color': 'rgba(0,0,0,0.1)'
+}
+},
+'settlement-label'
+); // Place polygon under these labels.
+ 
+map.addLayer(
+{
+'id': 'counties-highlighted',
+'type': 'fill',
+'source': 'counties',
+'source-layer': 'original',
+'paint': {
+'fill-outline-color': '#484896',
+'fill-color': '#6e599f',
+'fill-opacity': 0.75
+},
+'filter': ['in', 'FIPS', '']
+},
+'settlement-label'
+); // Place polygon under these labels.
+ 
+map.on('click', function(e) {
+// set bbox as 5px reactangle area around clicked point
+var bbox = [
+[e.point.x - 5, e.point.y - 5],
+[e.point.x + 5, e.point.y + 5]
+];
+var features = map.queryRenderedFeatures(bbox, {
+layers: ['counties']
+});
+ 
+// Run through the selected features and set a filter
+// to match features with unique FIPS codes to activate
+// the `counties-highlighted` layer.
+var filter = features.reduce(
+function(memo, feature) {
+memo.push(feature.properties.FIPS);
+return memo;
+},
+['in', 'FIPS']
+);
+ 
+map.setFilter('counties-highlighted', filter);
+});
+});
+
+
+// $('div.mapboxgl-ctrl-attrib-inner').empty();
+</script>
+ 
+</body>
+</html>
